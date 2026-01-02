@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Warrior V5 Final</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { warteg: '#d97706', water: '#0ea5e9' },
+                    animation: { 'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f172a; font-family: system-ui, -apple-system, sans-serif; color: #f8fafc; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .nav-active { color: #f97316; border-top: 2px solid #f97316; }
+        .nav-inactive { color: #94a3b8; border-top: 2px solid transparent; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- ICONS ---
+        const Icons = {
+            Pencil: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>,
+            Check: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
+            Close: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+            Fire: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.6-3.3.7 2.45 2.55 3.3 2.9 3.8Z"/></svg>,
+            Water: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>,
+            Plus: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+            Minus: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/></svg>,
+            Home: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+            History: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>,
+            Trash: ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        };
+
+        // --- INTELLIGENCE ENGINE ---
+        const analyzeMeal = (text) => {
+            if (!text || typeof text !== 'string') return { score: 0, label: 'KOSONG', color: 'bg-gray-200', textCol: 'text-gray-400', width: '0%' };
+            
+            const lower = text.toLowerCase();
+            let score = 0;
+            let multiplier = 1;
+
+            if (lower.match(/2\s*porsi|2x|double|dua|jumbo|banyak/)) multiplier = 1.5;
+            if (lower.match(/3\s*porsi|3x|triple|tiga|rakus/)) multiplier = 2;
+            if (lower.match(/setengah|dikit/)) multiplier = 0.8;
+
+            if (lower.includes('nasi') || lower.includes('mie') || lower.includes('kentang')) score += 15;
+            if (lower.match(/ayam|sapi|daging|rendang|ikan|lele|tongkol|bawal|cumi|udang|bebek|paru|dendeng/)) score += 35;
+            if (lower.match(/telur|telor|ati|ampela|usus|kikil|kulit/)) score += 20;
+            if (lower.match(/tempe|tahu|perkedel|bakwan|gorengan/)) score += 15;
+            if (lower.match(/sayur|sop|bayam|kangkung|gulai|santan|kuah/)) score += 10;
+
+            score = Math.round(score * multiplier);
+
+            let result = { score, grade: 'C', label: 'WEAK', color: 'bg-red-500', textCol: 'text-red-600', width: '25%' };
+            if (score >= 100) result = { score, grade: 'S+', label: 'GOD MODE', color: 'bg-purple-400', textCol: 'text-purple-400', width: '100%', animate: true };
+            else if (score >= 80) result = { score, grade: 'S', label: 'BEAST', color: 'bg-purple-600', textCol: 'text-purple-500', width: '90%', animate: true };
+            else if (score >= 60) result = { score, grade: 'A', label: 'GIGA BULK', color: 'bg-green-500', textCol: 'text-green-500', width: '75%' };
+            else if (score >= 40) result = { score, grade: 'B', label: 'DECENT', color: 'bg-yellow-500', textCol: 'text-yellow-500', width: '50%' };
+            
+            return result;
+        };
+
+        const MealScore = ({ text }) => {
+            const analysis = analyzeMeal(text);
+            return (
+                <div className="mt-2">
+                    <div className="flex justify-between items-end mb-1">
+                        <span className={`text-[10px] font-black uppercase tracking-wider ${analysis.textCol} flex items-center gap-1`}>
+                            {analysis.grade.includes('S') && <Icons.Fire className="w-3 h-3 animate-bounce" />} {analysis.label}
+                        </span>
+                        <span className="text-[9px] text-gray-400 font-bold">{analysis.score} PTS</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden border border-slate-200">
+                        <div className={`h-full rounded-full transition-all duration-700 ease-out ${analysis.color} ${analysis.animate ? 'animate-pulse' : ''}`} style={{ width: analysis.width }}></div>
+                    </div>
+                </div>
+            )
+        };
+
+        // --- CHART COMPONENT (RESTORED) ---
+        const WeightChart = ({ history, target }) => {
+            if (!history || history.length < 2) return <div className="text-center p-8 text-xs text-gray-400 border border-dashed rounded-xl bg-gray-50">Butuh minimal 2 data berat badan untuk menampilkan grafik.<br/>Yuk update berat badanmu hari ini!</div>;
+
+            const width = 300; const height = 150; const padding = 20;
+            const weights = history.map(h => h.w);
+            const minW = Math.min(...weights, target) - 1;
+            const maxW = Math.max(...weights, target) + 1;
+            
+            const getX = (i) => padding + (i / (history.length - 1)) * (width - padding * 2);
+            const getY = (w) => height - padding - ((w - minW) / (maxW - minW)) * (height - padding * 2);
+
+            const points = history.map((h, i) => `${getX(i)},${getY(h.w)}`).join(' ');
+            const targetY = getY(target);
+
+            return (
+                <div className="flex flex-col items-center">
+                    <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+                        <line x1={padding} y1={targetY} x2={width-padding} y2={targetY} stroke="#10b981" strokeWidth="1" strokeDasharray="4 4" opacity="0.5" />
+                        <text x={width-padding+5} y={targetY+3} className="text-[8px] fill-green-500 font-bold">Target {target}kg</text>
+                        <polyline points={points} fill="none" stroke="#f97316" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                        {history.map((h, i) => (
+                            <g key={i}>
+                                <circle cx={getX(i)} cy={getY(h.w)} r="4" fill="#fff" stroke="#f97316" strokeWidth="2" />
+                                <text x={getX(i)} y={getY(h.w) - 10} textAnchor="middle" className="text-[10px] fill-gray-600 font-bold">{h.w}</text>
+                                <text x={getX(i)} y={height} textAnchor="middle" className="text-[8px] fill-gray-400">{h.d.split(' ')[0]}</text>
+                            </g>
+                        ))}
+                    </svg>
+                </div>
+            );
+        };
+
+        // --- MODAL BERAT BADAN ---
+        const WeightModal = ({ isOpen, onClose, history, target, onUpdate }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/90 z-[70] flex items-center justify-center p-4 backdrop-blur-md animate-[fadeIn_0.2s]">
+                    <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl relative text-slate-800">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-red-500"><Icons.Close className="w-6 h-6"/></button>
+                        <h3 className="text-xl font-black mb-1">PROGRESS</h3>
+                        <p className="text-xs text-gray-500 mb-6 font-bold uppercase tracking-wide">Grafik Kenaikan Berat</p>
+                        <div className="mb-6">
+                            <WeightChart history={history} target={target} />
+                        </div>
+                        <button onClick={onUpdate} className="w-full bg-warteg text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-all">
+                            + UPDATE BERAT HARI INI
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        const WaterTracker = ({ count, onAdd, onRemove }) => {
+            const target = 8;
+            const percentage = Math.min(100, (count / target) * 100);
+            return (
+                <div className="bg-slate-800 rounded-2xl p-0 shadow-lg mb-6 relative overflow-hidden text-white border border-slate-700 group">
+                    <div className="absolute left-0 top-0 bottom-0 bg-water transition-all duration-700 ease-in-out opacity-20 group-hover:opacity-30" style={{width: `${percentage}%`}}></div>
+                    <div className="p-4 flex items-center justify-between relative z-10">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-full transition-colors ${percentage >= 100 ? 'bg-green-500' : 'bg-water'}`}>
+                                <Icons.Water className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Hidrasi (Reset 00:00)</div>
+                                <div className="text-2xl font-black leading-none flex items-baseline gap-1">
+                                    {count} <span className="text-sm font-medium text-slate-500">/ {target} gelas</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={onRemove} className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center hover:bg-slate-600 active:scale-95 transition-all"><Icons.Minus className="w-4 h-4"/></button>
+                            <button onClick={onAdd} className="w-10 h-10 rounded-full bg-water text-white shadow-lg shadow-blue-500/20 flex items-center justify-center hover:scale-105 active:scale-90 transition-all"><Icons.Plus className="w-5 h-5 stroke-[3px]"/></button>
+                        </div>
+                    </div>
+                    <div className="h-1 w-full bg-slate-700">
+                        <div className="h-full bg-water transition-all duration-700" style={{width: `${percentage}%`}}></div>
+                    </div>
+                </div>
+            );
+        };
+
+        const EditModalContent = ({ item, onSave }) => {
+            if (!item) return <div className="text-center text-gray-500 py-4">Data tidak ditemukan...</div>;
+            const [lunch, setLunch] = useState(item.lunch || "");
+            const [dinner, setDinner] = useState(item.dinner || "");
+
+            return (
+                <>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 uppercase">Makan Siang</label>
+                        <textarea value={lunch} onChange={e=>setLunch(e.target.value)} className="w-full bg-slate-50 border-2 rounded-xl p-3 text-sm font-bold outline-none focus:border-warteg" rows="2" placeholder="Coba: 2 porsi nasi ayam jumbo"/>
+                        <MealScore text={lunch} />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 uppercase">Makan Malam</label>
+                        <textarea value={dinner} onChange={e=>setDinner(e.target.value)} className="w-full bg-slate-50 border-2 rounded-xl p-3 text-sm font-bold outline-none focus:border-warteg" rows="2"/>
+                        <MealScore text={dinner} />
+                    </div>
+                    <button onClick={() => onSave(lunch, dinner)} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold mt-4 shadow-lg">SIMPAN</button>
+                </>
+            )
+        }
+
+        function App() {
+            const [view, setView] = useState('home');
+            const [user, setUser] = useState(null);
+            const [plan, setPlan] = useState([]);
+            const [waterLog, setWaterLog] = useState({});
+            
+            const [editMenuOpen, setEditMenuOpen] = useState(false);
+            const [editingIndex, setEditingIndex] = useState(null);
+            
+            // WEIGHT MODAL STATE
+            const [weightModalOpen, setWeightModalOpen] = useState(false);
+
+            const MENUS = [
+                {l: 'Nasi + Ayam Goreng + Telur Dadar + Sop', d: 'Nasi + Ikan Tongkol + Perkedel + Kangkung'},
+                {l: 'Nasi + Lele (2) + Tahu Bacem + Lalapan', d: 'Nasi + Telur Balado + Orek Tempe + Sayur Asem'},
+                {l: 'Nasi + Rendang + Daun Singkong + Gulai', d: 'Nasi + Ayam Bakar + Tempe Mendoan + Capcay'},
+                {l: 'Nasi (1.5) + Opor Ayam + Telur Ceplok', d: 'Nasi + Ati Ampela + Tahu Kuning + Lodeh'}
+            ];
+
+            // Use 'v5' key to ensure clean slate for new structure
+            useEffect(() => {
+                const u = localStorage.getItem('bulk_warrior_v5_user');
+                const p = localStorage.getItem('bulk_warrior_v5_plan');
+                const w = localStorage.getItem('bulk_warrior_v5_water');
+                if (u && p) { setUser(JSON.parse(u)); setPlan(JSON.parse(p)); if(w) setWaterLog(JSON.parse(w)); }
+            }, []);
+
+            useEffect(() => {
+                if (user) {
+                    localStorage.setItem('bulk_warrior_v5_user', JSON.stringify(user));
+                    localStorage.setItem('bulk_warrior_v5_plan', JSON.stringify(plan));
+                    localStorage.setItem('bulk_warrior_v5_water', JSON.stringify(waterLog));
+                }
+            }, [user, plan, waterLog]);
+
+            const generatePlan = (data) => {
+                const s = new Date(data.start), e = new Date(data.end);
+                const days = Math.ceil(Math.abs(e - s) / 86400000);
+                let newPlan = [];
+                for(let i=0; i<=days; i++){
+                    let d = new Date(s); d.setDate(s.getDate()+i);
+                    newPlan.push({
+                        date: d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}),
+                        day: d.toLocaleDateString('id-ID', {weekday:'long'}),
+                        fullDate: d.toDateString(),
+                        isoDate: d.toISOString(),
+                        lunch: MENUS[i%MENUS.length].l, dinner: MENUS[i%MENUS.length].d,
+                        lChk: false, dChk: false
+                    });
+                }
+                // Initialize history with starting weight
+                const todayStr = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'short'});
+                setUser({ ...data, history: [{d: todayStr, w: data.weight}] });
+                setPlan(newPlan);
+            };
+
+            const toggleMeal = (idx, type) => {
+                const n = [...plan];
+                if(type==='l') n[idx].lChk = !n[idx].lChk; else n[idx].dChk = !n[idx].dChk;
+                setPlan(n);
+            };
+
+            const saveMenuEdit = (newL, newD) => {
+                const newPlan = [...plan];
+                newPlan[editingIndex].lunch = newL;
+                newPlan[editingIndex].dinner = newD;
+                setPlan(newPlan);
+                setEditMenuOpen(false);
+            };
+
+            const getTodayKey = () => new Date().toDateString();
+            const updateWater = (amount) => {
+                const key = getTodayKey();
+                const current = waterLog[key] || 0;
+                setWaterLog({ ...waterLog, [key]: Math.max(0, current + amount) });
+            };
+
+            const updateWeight = () => {
+                const w = prompt("Berat badan sekarang (kg):", user.weight);
+                if(w && !isNaN(w)) {
+                    const todayStr = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'short'});
+                    // Add new weight to history
+                    const newHistory = [...user.history, { d: todayStr, w: parseFloat(w) }];
+                    setUser({ ...user, weight: parseFloat(w), history: newHistory });
+                }
+            };
+
+            const resetApp = () => {
+                if(confirm("Yakin mau RESET SEMUA dari awal? Data hilang permanen.")) {
+                    localStorage.clear();
+                    window.location.reload();
+                }
+            }
+
+            const isPast = (dateStr) => {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const target = new Date(dateStr);
+                return target < today;
+            }
+
+            const isToday = (dateStr) => new Date(dateStr).toDateString() === new Date().toDateString();
+
+            const activePlan = plan.filter(item => !isPast(item.fullDate));
+            const historyPlan = plan.filter(item => isPast(item.fullDate)).reverse();
+
+            if (!user) return <div className="min-h-screen flex items-center justify-center p-6 bg-slate-900">
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.target);
+                    const d = Object.fromEntries(fd);
+                    if(!d.name || !d.start || !d.end) return alert("Lengkapi data!");
+                    if(new Date(d.end) <= new Date(d.start)) return alert("Tanggal ngaco!");
+                    generatePlan({ name: d.name, weight: parseFloat(d.weight), target: parseFloat(d.target), start: d.start, end: d.end });
+                }} className="w-full max-w-sm bg-white text-gray-900 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+                    <h1 className="text-3xl font-black text-slate-800 text-center mb-1">BULK WARRIOR</h1>
+                    <p className="text-center text-gray-400 text-xs font-bold uppercase tracking-widest mb-8">by ejikenjiee</p>
+                    <div className="space-y-4">
+                        <input name="name" placeholder="Nama" className="w-full border p-3 rounded-xl font-bold bg-gray-50" required />
+                        <div className="grid grid-cols-2 gap-3">
+                            <input name="weight" type="number" placeholder="Berat" className="border p-3 rounded-xl font-bold bg-gray-50" required />
+                            <input name="target" type="number" placeholder="Target" className="border p-3 rounded-xl font-bold bg-gray-50" required />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <input name="start" type="date" className="border p-2 rounded text-xs font-bold" required />
+                            <input name="end" type="date" className="border p-2 rounded text-xs font-bold" required />
+                        </div>
+                        <button className="w-full bg-warteg text-white py-4 rounded-xl font-bold mt-2">MULAI!</button>
+                    </div>
+                </form>
+            </div>;
+
+            return (
+                <div className="max-w-md mx-auto bg-slate-50 min-h-screen relative text-slate-800 flex flex-col">
+                    {/* HEADER */}
+                    <div className="bg-slate-900 text-white p-6 pb-8 rounded-b-[2rem] shadow-2xl z-20">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h2 className="font-black text-2xl italic tracking-tighter text-warteg">BULK V5</h2>
+                                <div className="text-[10px] text-slate-400 uppercase font-bold">Warrior: {user.name}</div>
+                            </div>
+                            <button onClick={() => setWeightModalOpen(true)} className="glass px-4 py-2 rounded-xl text-right hover:bg-white/10 transition-colors">
+                                <div className="text-2xl font-black">{user.weight} <span className="text-sm text-slate-400">kg</span></div>
+                                <div className="text-[10px] text-green-400 font-bold uppercase">Target: {user.target} kg</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 px-5 -mt-4 relative z-30 pb-24 overflow-y-auto">
+                        {view === 'home' ? (
+                            <>
+                                <WaterTracker count={waterLog[getTodayKey()] || 0} onAdd={() => updateWater(1)} onRemove={() => updateWater(-1)} />
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Jadwal Aktif</h3>
+                                    {activePlan.length === 0 && <div className="text-center text-slate-400 py-10 text-sm">Jadwal Selesai! Cek Laporan.</div>}
+                                    {activePlan.map((item) => {
+                                        const originalIdx = plan.findIndex(p => p.isoDate === item.isoDate);
+                                        const active = isToday(item.fullDate);
+                                        return (
+                                            <div key={originalIdx} className={`bg-white p-5 rounded-3xl border transition-all relative ${active ? 'border-warteg shadow-xl scale-[1.02] z-10' : 'border-gray-100 shadow-sm opacity-90'}`}>
+                                                <div className="flex justify-between items-center mb-4 border-b border-dashed pb-3 border-gray-100">
+                                                    <div>
+                                                        <div className={`font-black text-xl ${active?'text-warteg':'text-slate-800'}`}>{item.date}</div>
+                                                        <div className="text-[10px] font-bold text-gray-400 uppercase">{item.day}</div>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        {active && <span className="bg-warteg text-white px-2 py-1 rounded text-[10px] font-bold">TODAY</span>}
+                                                        <button onClick={() => { setEditingIndex(originalIdx); setEditMenuOpen(true); }} className="text-gray-300 hover:text-warteg"><Icons.Pencil className="w-4 h-4" /></button>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <div onClick={()=>toggleMeal(originalIdx, 'l')} className="cursor-pointer group flex items-start gap-3">
+                                                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center mt-0.5 transition-all ${item.lChk?'bg-green-500 border-green-500':'border-gray-200'}`}>{item.lChk && <Icons.Check className="w-4 h-4 text-white stroke-[3px]"/>}</div>
+                                                        <div className="flex-1">
+                                                            <div className="text-[9px] font-black text-gray-300 uppercase">SIANG</div>
+                                                            <div className={`text-sm font-bold leading-snug ${item.lChk?'line-through text-gray-300':'text-slate-700'}`}>{item.lunch}</div>
+                                                            {!item.lChk && <MealScore text={item.lunch} />}
+                                                        </div>
+                                                    </div>
+                                                    <div onClick={()=>toggleMeal(originalIdx, 'd')} className="cursor-pointer group flex items-start gap-3">
+                                                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center mt-0.5 transition-all ${item.dChk?'bg-green-500 border-green-500':'border-gray-200'}`}>{item.dChk && <Icons.Check className="w-4 h-4 text-white stroke-[3px]"/>}</div>
+                                                        <div className="flex-1">
+                                                            <div className="text-[9px] font-black text-gray-300 uppercase">MALAM</div>
+                                                            <div className={`text-sm font-bold leading-snug ${item.dChk?'line-through text-gray-300':'text-slate-700'}`}>{item.dinner}</div>
+                                                            {!item.dChk && <MealScore text={item.dinner} />}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-4 pt-4">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Laporan</h3>
+                                    <button onClick={resetApp} className="text-[10px] font-bold text-red-400 flex items-center gap-1 hover:text-red-600 border border-red-200 px-2 py-1 rounded-lg"><Icons.Trash className="w-3 h-3"/> RESET DATA</button>
+                                </div>
+                                {historyPlan.length === 0 && <div className="text-center text-slate-400 py-10 text-sm bg-white rounded-2xl border border-dashed">Belum ada data masa lalu.</div>}
+                                {historyPlan.map((item, idx) => {
+                                    const waterCount = waterLog[item.fullDate] || 0;
+                                    const lScore = analyzeMeal(item.lunch);
+                                    const dScore = analyzeMeal(item.dinner);
+                                    return (
+                                        <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
+                                            <div className="flex justify-between items-center border-b pb-2">
+                                                <span className="font-bold text-slate-700">{item.date}</span>
+                                                <span className="text-[10px] text-slate-400">{item.day}</span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2 text-center">
+                                                <div className="bg-blue-50 p-2 rounded-xl">
+                                                    <div className="text-[9px] text-blue-400 uppercase font-bold">Air</div>
+                                                    <div className="font-black text-blue-600">{waterCount} gls</div>
+                                                </div>
+                                                <div className={`p-2 rounded-xl ${item.lChk ? 'bg-green-50' : 'bg-red-50'}`}>
+                                                    <div className={`text-[9px] uppercase font-bold ${item.lChk ? 'text-green-500' : 'text-red-400'}`}>Siang</div>
+                                                    <div className="font-black text-slate-700">{lScore.score} Pts</div>
+                                                </div>
+                                                <div className={`p-2 rounded-xl ${item.dChk ? 'bg-green-50' : 'bg-red-50'}`}>
+                                                    <div className={`text-[9px] uppercase font-bold ${item.dChk ? 'text-green-500' : 'text-red-400'}`}>Malam</div>
+                                                    <div className="font-black text-slate-700">{dScore.score} Pts</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-white border-t border-slate-100 fixed bottom-0 w-full max-w-md flex justify-around p-0 z-50">
+                        <button onClick={() => setView('home')} className={`flex-1 py-4 flex flex-col items-center justify-center gap-1 transition-all ${view === 'home' ? 'nav-active' : 'nav-inactive'}`}>
+                            <Icons.Home className="w-6 h-6" /><span className="text-[10px] font-bold uppercase">Tracker</span>
+                        </button>
+                        <button onClick={() => setView('report')} className={`flex-1 py-4 flex flex-col items-center justify-center gap-1 transition-all ${view === 'report' ? 'nav-active' : 'nav-inactive'}`}>
+                            <Icons.History className="w-6 h-6" /><span className="text-[10px] font-bold uppercase">Laporan</span>
+                        </button>
+                    </div>
+
+                    {editMenuOpen && (
+                        <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-[fadeIn_0.2s]">
+                            <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl relative text-slate-800">
+                                <button onClick={() => setEditMenuOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500"><Icons.Close className="w-6 h-6"/></button>
+                                <h3 className="text-xl font-black mb-4">EDIT MENU</h3>
+                                <div className="space-y-4">
+                                    <EditModalContent item={plan[editingIndex]} onSave={saveMenuEdit} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <WeightModal isOpen={weightModalOpen} onClose={() => setWeightModalOpen(false)} history={user.history} target={user.target} onUpdate={updateWeight} />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
